@@ -136,40 +136,51 @@
       storyBox.onclick = nextStory;
       document.querySelector("#story-skip").onclick = e => { e.stopPropagation(); endStory(); };
 
-      // ストーリーの音楽：1908 年のレコード「Hearts and Flowers」（パブリックドメイン）を、フェードを付けて無限にループする。
+      // 悪夢の音楽：1908 年のレコード「Hearts and Flowers」（パブリックドメイン、針音を取り除いたもの）を無限にループする。
+      // ストーリーから流れ続け、ゲームでは少し控えめにし、悪夢から覚めたとき（脱出）にフェードアウトして止める。次の夜でまた流れる。
       // iPhone の Safari は音声の音量を変えられないので、Web Audio で鳴らす（読み込みはページを開いたときに始めておく）
       const music = (() => {
-        let ctx = null, gain = null;
+        let ctx = null, gain = null, src = null, decoded = null;
         const data = fetch("story-music.mp3").then(r => r.arrayBuffer()).catch(e => { console.warn(e); return null; });
-        function start() {
-          try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
-          if (ctx.state === "suspended") ctx.resume();   // タップの中で作っても止まった状態で始まるブラウザがある
-          gain = ctx.createGain();
-          gain.gain.value = 0;
-          gain.connect(ctx.destination);
-          const audio = ctx;
-          data.then(buf => buf && audio.decodeAudioData(buf.slice(0))).then(decoded => {
-            if (!decoded || ctx !== audio) return;
-            const src = audio.createBufferSource();
-            src.buffer = decoded;
-            src.loop = true;
-            src.connect(gain);
-            src.start();
-            gain.gain.setValueAtTime(0, audio.currentTime);
-            gain.gain.linearRampToValueAtTime(0.9, audio.currentTime + 2);
-          }).catch(e => console.warn(e));
-        }
-        function stop() {
-          if (!ctx) return;
-          const audio = ctx, t = audio.currentTime;
-          ctx = null;
+        function ramp(volume, seconds) {
+          const t = ctx.currentTime;
           gain.gain.cancelScheduledValues(t);
           gain.gain.setValueAtTime(gain.gain.value, t);
-          gain.gain.linearRampToValueAtTime(0, t + 2.5);
-          setTimeout(() => audio.close(), 2800);
+          gain.gain.linearRampToValueAtTime(volume, t + seconds);
         }
-        return { start, stop };
+        // タップの中で最初に呼ぶ（ブラウザは操作があるまで音を出させない）
+        function play(volume, seconds) {
+          if (!ctx) {
+            try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
+            gain = ctx.createGain();
+            gain.gain.value = 0;
+            gain.connect(ctx.destination);
+          }
+          if (ctx.state === "suspended") ctx.resume();   // タップの中で作っても止まった状態で始まるブラウザがある
+          (decoded ? Promise.resolve(decoded) : data.then(buf => buf && ctx.decodeAudioData(buf.slice(0)))).then(d => {
+            if (!d) return;
+            decoded = d;
+            if (!src) {
+              src = ctx.createBufferSource();
+              src.buffer = d;
+              src.loop = true;
+              src.connect(gain);
+              src.start();
+            }
+            ramp(volume, seconds);
+          }).catch(e => console.warn(e));
+        }
+        function stop(seconds) {
+          if (!ctx || !src) return;
+          ramp(0, seconds);
+          src.stop(ctx.currentTime + seconds + 0.05);
+          src = null;
+        }
+        return { play, stop };
       })();
+      const StoryVolume = 0.9, GameVolume = 0.45;
+      // ゲームから呼ばれる（夜が始まると true、悪夢から覚めると false）
+      window.nightmareMusic = on => on ? music.play(GameVolume, 2) : music.stop(3);
 
       // 流れ：タイトル → （タップで）音楽とストーリー → ゲーム。読み込みが間に合わなければ、読み込みの表示を出して待つ
       let unity = null, storyDone = false, begun = false;
@@ -182,7 +193,7 @@
             .then(() => screen.orientation && screen.orientation.lock ? screen.orientation.lock("landscape") : null)
             .catch(e => console.warn(e));
         }
-        music.start();
+        music.play(StoryVolume, 2);
         storyBox.style.display = "flex";
         nextStory();
       };
@@ -190,7 +201,6 @@
         if (storyDone) return;
         storyDone = true;
         storyBox.style.display = "none";
-        music.stop();
         if (unity) beginGame();
       }
       // ゲームの音（犬・心音など）は、ここで初めて鳴り始める
@@ -314,8 +324,7 @@
         productVersion: "1.0",
         showBanner: showBanner
       };
-      // スマホは画面が細かすぎると重いので、描画の解像度を抑える
-      if (touch) config.devicePixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
+      config.devicePixelRatio = Math.min(window.devicePixelRatio || 1, 2);   // 画質優先。3 倍の画面でも 2 倍までにして重くなりすぎないようにする
 
       const loader = document.createElement("script");
       loader.src = buildUrl + "/Web.loader.js";
