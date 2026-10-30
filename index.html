@@ -26,18 +26,18 @@
                  color: #c9c2b8; font: 18px "Hiragino Sans", "Yu Gothic", sans-serif; background: #000; text-align: center; }
       #loading-bar { width: min(60vw, 420px); height: 4px; margin-top: 18px; background: #222; border-radius: 2px; overflow: hidden; }
       #loading-fill { width: 0; height: 100%; background: #8a7a62; }
-      #start { display: none; cursor: pointer; background: rgba(0, 0, 0, 0.88); }
-      #start h1 { margin: 0 0 12px; font: 52px "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", serif; letter-spacing: 0.4em; text-indent: 0.4em; color: #e8e0d4; }
-      #start p { margin: 6px 0; }
-      #start .hint { margin-top: 28px; font-size: 15px; color: #8a8178; }
+      /* 最初のタイトル。どこをタップしても始まる */
+      #title { z-index: 16; cursor: pointer; background: #000; }
+      #title h1 { margin: 0; font: clamp(48px, 9vmax, 84px) "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", serif; font-weight: normal;
+                  letter-spacing: 0.4em; text-indent: 0.4em; color: #e8e0d4; }
+      #title .hint { margin-top: 36px; font-size: 14px; letter-spacing: 0.2em; color: #6e655a; }
       #warning { display: none; position: fixed; top: 12%; left: 8%; right: 8%; padding: 16px; color: #fff; background: #542d31; font: 16px sans-serif; }
       /* 最初に流すストーリー。タップ（クリック）で次の場面へ進む */
-      #story { display: flex; z-index: 15; cursor: pointer; padding: 24px 8%; box-sizing: border-box;
+      #story { display: none; z-index: 15; cursor: pointer; padding: 24px 8%; box-sizing: border-box;
                font-family: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", serif; }
       #story-text { max-width: 760px; font-size: clamp(16px, 2.6vmax, 24px); line-height: 2; color: #d8d0c4; white-space: pre-line;
                     opacity: 0; transition: opacity 0.9s; }
       #story-text.shown { opacity: 1; }
-      #story-text.title { font-size: clamp(40px, 7vmax, 72px); letter-spacing: 0.4em; text-indent: 0.4em; color: #e8e0d4; }
       #story-next { position: absolute; bottom: 7%; font-size: 13px; color: #6e655a; animation: blink 2s ease-in-out infinite; }
       @keyframes blink { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
       #story-skip { position: absolute; top: 14px; right: 14px; padding: 6px 14px; border: 1px solid #4a443c; border-radius: 4px;
@@ -68,10 +68,9 @@
       <div>読み込み中…</div>
       <div id="loading-bar"><div id="loading-fill"></div></div>
     </div>
-    <div id="start" class="overlay">
+    <div id="title" class="overlay">
       <h1>悪夢</h1>
-      <p>クリックで始める</p>
-      <p class="hint">ヘッドホン推奨 ／ 音を立てると、ハクが来る</p>
+      <p class="hint">ヘッドホン推奨</p>
     </div>
     <div id="story" class="overlay">
       <div id="story-text"></div>
@@ -101,13 +100,12 @@
     <script>
       const canvas = document.querySelector("#unity-canvas");
       const loading = document.querySelector("#loading");
-      const start = document.querySelector("#start");
+      const title = document.querySelector("#title");
       const fullscreen = document.querySelector("#fullscreen");
       const touch = matchMedia("(pointer: coarse)").matches;
-      if (touch) document.querySelector("#start p").textContent = "タップで始める";
       if (!touch) document.querySelector("#story-next").textContent = "クリックで次へ";
 
-      // ストーリー（| で改行）。読み込みのあいだに流し、終わるかスキップすると「始める」画面になる
+      // ストーリー（| で改行）。タイトルの後、読み込みのあいだに音楽と一緒に流し、終わるかスキップするとゲームが始まる
       const story = [
         "俺はビリヤードで食っている。|負けられない理由があった。",
         "相棒は、年老いたボルゾイのハクだった。|目はほとんど見えず、|玉の音だけを頼りに生きていた。",
@@ -122,24 +120,88 @@
         "その夜、目を開けると、俺は台の上にいた。||骨でできた、白い手球として。",
         "台の外で、何かが床を引きずる音がする。||三本の足。白く濁った目。|ハクだ。||あいつは、自分の骨の匂いを覚えている。",
         "目を覚ますには、台の玉をすべてポケットに落とし、|最後に自分が落ちるしかない。||音を立てるな。|今度は、あいつが食べる番だ。",
-        "悪夢",
       ];
       const storyBox = document.querySelector("#story"), storyText = document.querySelector("#story-text");
       let storyPage = -1, storyTimer = 0;
       function nextStory() {
         storyPage++;
-        if (storyPage >= story.length) { storyBox.style.display = "none"; return; }
+        if (storyPage >= story.length) { endStory(); return; }
         storyText.classList.remove("shown");
         clearTimeout(storyTimer);
         storyTimer = setTimeout(() => {
           storyText.textContent = story[storyPage].split("|").join(String.fromCharCode(10));   // | は改行（テンプレートの書き出しで改行記号が壊れるため）
-          storyText.classList.toggle("title", storyPage === story.length - 1);
           storyText.classList.add("shown");
         }, storyPage === 0 ? 0 : 450);
       }
       storyBox.onclick = nextStory;
-      document.querySelector("#story-skip").onclick = e => { e.stopPropagation(); storyBox.style.display = "none"; };
-      nextStory();
+      document.querySelector("#story-skip").onclick = e => { e.stopPropagation(); endStory(); };
+
+      // ストーリーの音楽：1908 年のレコード「Hearts and Flowers」（パブリックドメイン）を、フェードを付けて無限にループする。
+      // iPhone の Safari は音声の音量を変えられないので、Web Audio で鳴らす（読み込みはページを開いたときに始めておく）
+      const music = (() => {
+        let ctx = null, gain = null;
+        const data = fetch("story-music.mp3").then(r => r.arrayBuffer()).catch(e => { console.warn(e); return null; });
+        function start() {
+          try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
+          if (ctx.state === "suspended") ctx.resume();   // タップの中で作っても止まった状態で始まるブラウザがある
+          gain = ctx.createGain();
+          gain.gain.value = 0;
+          gain.connect(ctx.destination);
+          const audio = ctx;
+          data.then(buf => buf && audio.decodeAudioData(buf.slice(0))).then(decoded => {
+            if (!decoded || ctx !== audio) return;
+            const src = audio.createBufferSource();
+            src.buffer = decoded;
+            src.loop = true;
+            src.connect(gain);
+            src.start();
+            gain.gain.setValueAtTime(0, audio.currentTime);
+            gain.gain.linearRampToValueAtTime(0.9, audio.currentTime + 2);
+          }).catch(e => console.warn(e));
+        }
+        function stop() {
+          if (!ctx) return;
+          const audio = ctx, t = audio.currentTime;
+          ctx = null;
+          gain.gain.cancelScheduledValues(t);
+          gain.gain.setValueAtTime(gain.gain.value, t);
+          gain.gain.linearRampToValueAtTime(0, t + 2.5);
+          setTimeout(() => audio.close(), 2800);
+        }
+        return { start, stop };
+      })();
+
+      // 流れ：タイトル → （タップで）音楽とストーリー → ゲーム。読み込みが間に合わなければ、読み込みの表示を出して待つ
+      let unity = null, storyDone = false, begun = false;
+      title.onclick = () => {
+        title.style.display = "none";
+        // スマホでは全画面にして横向きに固定する（できないブラウザでは何もしない）
+        if (touch && !installed) {
+          const request = document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen;
+          if (request) Promise.resolve(request.call(document.documentElement))
+            .then(() => screen.orientation && screen.orientation.lock ? screen.orientation.lock("landscape") : null)
+            .catch(e => console.warn(e));
+        }
+        music.start();
+        storyBox.style.display = "flex";
+        nextStory();
+      };
+      function endStory() {
+        if (storyDone) return;
+        storyDone = true;
+        storyBox.style.display = "none";
+        music.stop();
+        if (unity) beginGame();
+      }
+      // ゲームの音（犬・心音など）は、ここで初めて鳴り始める
+      function beginGame() {
+        if (begun) return;
+        begun = true;
+        loading.style.display = "none";
+        canvas.focus();
+        unity.SendMessage("GameManager", "BeginPlay");
+        fullscreen.style.display = (document.fullscreenEnabled || document.webkitFullscreenEnabled) ? "block" : "none";
+      }
 
       // ホーム画面から開いたとき（アプリとして動いているとき）は、案内も全画面化もいらない
       const installed = matchMedia("(display-mode: fullscreen)").matches || matchMedia("(display-mode: standalone)").matches
@@ -188,18 +250,31 @@
         return { left: 0, top: 0, x: 0, y: 0, right: w, bottom: h, width: w, height: h };
       };
       function getter(proto, name) { return Object.getOwnPropertyDescriptor(proto, name).get; }
-      function rotatePoint(target, proto) {
+      function turned(cx, cy) {
         const r = nativeRect.call(stage);
-        const cx = getter(proto, "clientX").call(target), cy = getter(proto, "clientY").call(target);
-        const x = cy - r.top, y = r.right - cx;
+        return [cy - r.top, r.right - cx];
+      }
+      function rotatePoint(target, proto) {
+        const [x, y] = turned(getter(proto, "clientX").call(target), getter(proto, "clientY").call(target));
         for (const [name, value] of [["clientX", x], ["clientY", y], ["pageX", x], ["pageY", y], ["screenX", x], ["screenY", y]])
           Object.defineProperty(target, name, { value: value, configurable: true });
+      }
+      // タッチは 1 つずつの座標を書き換えても Safari（WebKit）では効かないので、一覧ごと回した座標の写しに差し替える
+      function turnedTouches(list) {
+        const copy = [];
+        for (let i = 0; i < list.length; i++) {
+          const t = list[i], [x, y] = turned(t.clientX, t.clientY);
+          copy.push({ identifier: t.identifier, target: t.target, clientX: x, clientY: y, pageX: x, pageY: y, screenX: x, screenY: y,
+                      radiusX: t.radiusX, radiusY: t.radiusY, rotationAngle: t.rotationAngle, force: t.force });
+        }
+        copy.item = i => copy[i] || null;
+        return copy;
       }
       function rotateEvent(e) {
         if (!portrait.matches || !stage.contains(e.target)) return;
         if (window.TouchEvent && e instanceof TouchEvent) {
-          for (const list of [e.touches, e.changedTouches, e.targetTouches])
-            for (let i = 0; i < list.length; i++) rotatePoint(list[i], Touch.prototype);
+          for (const name of ["touches", "changedTouches", "targetTouches"])
+            Object.defineProperty(e, name, { value: turnedTouches(e[name]), configurable: true });
         } else if (e instanceof MouseEvent) {
           rotatePoint(e, MouseEvent.prototype);
         }
@@ -248,23 +323,10 @@
       loader.onload = () => {
         createUnityInstance(canvas, config, progress => {
           document.querySelector("#loading-fill").style.width = Math.round(progress * 100) + "%";
-        }).then(() => {
-          loading.style.display = "none";
-          // ブラウザは操作があるまで音を鳴らせないので、最初のクリックで始める
-          start.style.display = "flex";
-          start.onclick = () => {
-            start.style.display = "none";
-            canvas.focus();
-            // スマホでは全画面にして横向きに固定する（できないブラウザでは何もしない）
-            if (touch && !installed) {
-              const request = document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen;
-              if (request) Promise.resolve(request.call(document.documentElement))
-                .then(() => screen.orientation && screen.orientation.lock ? screen.orientation.lock("landscape") : null)
-                .catch(e => console.warn(e));
-            }
-            fullscreen.style.display = (document.fullscreenEnabled || document.webkitFullscreenEnabled) ? "block" : "none";
-          };
+        }).then(instance => {
+          unity = instance;
           fullscreen.onclick = toggleFullscreen;
+          if (storyDone) beginGame();
         }).catch(message => showBanner(message, "error"));
       };
       document.body.appendChild(loader);
