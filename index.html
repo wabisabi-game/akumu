@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="悪夢">
+    <meta name="theme-color" content="#000000">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-180.png">
+    <title>悪夢</title>
+    <style>
+      html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #000; touch-action: none; overscroll-behavior: none;
+                   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+      #stage { position: fixed; inset: 0; overflow: hidden; }
+      #unity-canvas { display: block; width: 100%; height: 100%; background: #000; touch-action: none; outline: none; }
+      /* スマホを縦に持っているときは、画面全体を 90 度回して横表示にする（スマホを横にすればそのまま遊べる） */
+      @media (orientation: portrait) and (pointer: coarse) {
+        #stage { inset: auto; top: 0; left: 100vw; width: 100vh; height: 100vw; transform: rotate(90deg); transform-origin: 0 0; }
+        @supports (height: 100dvh) { #stage { width: 100dvh; left: 100dvw; height: 100dvw; } }
+      }
+      .overlay { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+                 color: #c9c2b8; font: 18px "Hiragino Sans", "Yu Gothic", sans-serif; background: #000; text-align: center; }
+      #loading-bar { width: min(60vw, 420px); height: 4px; margin-top: 18px; background: #222; border-radius: 2px; overflow: hidden; }
+      #loading-fill { width: 0; height: 100%; background: #8a7a62; }
+      #start { display: none; cursor: pointer; background: rgba(0, 0, 0, 0.88); }
+      #start h1 { margin: 0 0 12px; font: 52px "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", serif; letter-spacing: 0.4em; text-indent: 0.4em; color: #e8e0d4; }
+      #start p { margin: 6px 0; }
+      #start .hint { margin-top: 28px; font-size: 15px; color: #8a8178; }
+      #warning { display: none; position: fixed; top: 12%; left: 8%; right: 8%; padding: 16px; color: #fff; background: #542d31; font: 16px sans-serif; }
+      /* 最初に流すストーリー。タップ（クリック）で次の場面へ進む */
+      #story { display: flex; z-index: 15; cursor: pointer; padding: 24px 8%; box-sizing: border-box;
+               font-family: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", serif; }
+      #story-text { max-width: 760px; font-size: clamp(16px, 2.6vmax, 24px); line-height: 2; color: #d8d0c4; white-space: pre-line;
+                    opacity: 0; transition: opacity 0.9s; }
+      #story-text.shown { opacity: 1; }
+      #story-text.title { font-size: clamp(40px, 7vmax, 72px); letter-spacing: 0.4em; text-indent: 0.4em; color: #e8e0d4; }
+      #story-next { position: absolute; bottom: 7%; font-size: 13px; color: #6e655a; animation: blink 2s ease-in-out infinite; }
+      @keyframes blink { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+      #story-skip { position: absolute; top: 14px; right: 14px; padding: 6px 14px; border: 1px solid #4a443c; border-radius: 4px;
+                    background: transparent; color: #8a8178; font: 13px sans-serif; }
+      /* スマホで最初に出す案内：①横向きにする ②ホーム画面に追加する */
+      .guide { display: none; z-index: 20; padding: 16px 24px; box-sizing: border-box; background: #000; }
+      .guide h2 { margin: 0 0 10px; font-size: 21px; color: #e8e0d4; letter-spacing: 0.05em; }
+      .guide p { margin: 4px 0; font-size: 15px; line-height: 1.5; }
+      .guide .note { font-size: 13px; color: #8a8178; }
+      .guide ol { margin: 8px 0 4px; padding-left: 1.6em; text-align: left; font-size: 15px; line-height: 1.6; }
+      .guide b { color: #e8e0d4; }
+      .guide .buttons { display: flex; gap: 14px; margin-top: 14px; }
+      .guide button { padding: 10px 26px; border: 1px solid #6e655a; border-radius: 6px; background: #2a2622; color: #e8e0d4;
+                      font: 16px "Hiragino Sans", "Yu Gothic", sans-serif; }
+      .guide button.primary { background: #8a7a62; border-color: #8a7a62; color: #111; font-weight: bold; }
+      .guide .phone { width: 40px; height: 70px; border: 3px solid #c9c2b8; border-radius: 8px; margin-bottom: 16px; animation: turn 2.2s ease-in-out infinite; }
+      @keyframes turn { 0%, 30% { transform: rotate(0deg); } 60%, 100% { transform: rotate(90deg); } }
+      .share { display: inline-block; width: 13px; height: 12px; border: 2px solid #c9c2b8; border-top: 0; position: relative; margin: 0 3px; vertical-align: -1px; }
+      .share::before { content: ""; position: absolute; left: 50%; top: -7px; width: 2px; height: 12px; margin-left: -1px; background: #c9c2b8; }
+      #fullscreen { position: fixed; right: 12px; bottom: 12px; padding: 6px 12px; border: 0; border-radius: 4px;
+                    background: rgba(60, 55, 50, 0.6); color: #ddd; font: 13px sans-serif; cursor: pointer; display: none; }
+    </style>
+  </head>
+  <body>
+    <div id="stage">
+    <canvas id="unity-canvas" width=1280 height=720 tabindex="-1"></canvas>
+    <div id="loading" class="overlay">
+      <div>読み込み中…</div>
+      <div id="loading-bar"><div id="loading-fill"></div></div>
+    </div>
+    <div id="start" class="overlay">
+      <h1>悪夢</h1>
+      <p>クリックで始める</p>
+      <p class="hint">ヘッドホン推奨 ／ 音を立てると、ハクが来る</p>
+    </div>
+    <div id="story" class="overlay">
+      <div id="story-text"></div>
+      <div id="story-next">タップで次へ</div>
+      <button id="story-skip" type="button">スキップ</button>
+    </div>
+    <div id="warning" role="alert"></div>
+    <button id="fullscreen" type="button">全画面</button>
+    <div id="guide-home" class="overlay guide">
+      <h2>ホーム画面に追加しよう</h2>
+      <p>ホーム画面から開くと、アプリのように全画面で遊べます</p>
+      <ol id="home-steps"></ol>
+      <div class="buttons">
+        <button id="install" class="primary" type="button" style="display: none">ホーム画面に追加</button>
+        <button id="home-later" type="button">あとで</button>
+      </div>
+    </div>
+    </div>
+    <!-- 横向きの案内は、縦に持っていても読めるように画面の向きのまま出す -->
+    <div id="guide-rotate" class="overlay guide">
+      <div class="phone"></div>
+      <h2>スマホを横向きにしてください</h2>
+      <p>横向きに持って遊ぶゲームです</p>
+      <p class="note">縦のままでも、画面は横向きに表示されます</p>
+      <div class="buttons"><button id="rotate-next" class="primary" type="button">次へ</button></div>
+    </div>
+    <script>
+      const canvas = document.querySelector("#unity-canvas");
+      const loading = document.querySelector("#loading");
+      const start = document.querySelector("#start");
+      const fullscreen = document.querySelector("#fullscreen");
+      const touch = matchMedia("(pointer: coarse)").matches;
+      if (touch) document.querySelector("#start p").textContent = "タップで始める";
+      if (!touch) document.querySelector("#story-next").textContent = "クリックで次へ";
+
+      // ストーリー（| で改行）。読み込みのあいだに流し、終わるかスキップすると「始める」画面になる
+      const story = [
+        "俺はビリヤードで食っている。|負けられない理由があった。",
+        "相棒は、年老いたボルゾイのハクだった。|目はほとんど見えず、|玉の音だけを頼りに生きていた。",
+        "借金の取り立てが、家に来るようになった。|最後の望みは、遠征先での賭け試合だった。",
+        "吠えれば通報される。|俺はハクをビリヤード部屋に閉じ込めて、鍵をかけた。|皿に、三日分の餌を盛って。",
+        "試合は九日続いた。||四日目、隣人から電話が来た。|「犬が一晩中、ドアをひっかいて鳴いている」||俺は電話の電源を切った。|集中したかった。",
+        "帰った夜、ドアの内側は爪痕でささくれていた。|床には乾いた血の筋。|皿は、なめ続けた舌の血で赤く染まっていた。",
+        "ハクは台の脚にもたれて死んでいた。||前足の片方は、肘から先がなかった。|自分で、食べたのだ。",
+        "胃の中から、玉がひとつ出てきた。|白い手球。||部屋の中で、俺の手の匂いがする、|たったひとつのもの。",
+        "すまないと思った。|だが、仕方なかった。|勝たなければ、俺たちは路上だった。",
+        "俺はあいつの骨を削り、新しい手球を作った。|お守りのつもりだった。||翌日の試合、俺は一度も外さなかった。",
+        "その夜、目を開けると、俺は台の上にいた。||骨でできた、白い手球として。",
+        "台の外で、何かが床を引きずる音がする。||三本の足。白く濁った目。|ハクだ。||あいつは、自分の骨の匂いを覚えている。",
+        "目を覚ますには、台の玉をすべてポケットに落とし、|最後に自分が落ちるしかない。||音を立てるな。|今度は、あいつが食べる番だ。",
+        "悪夢",
+      ];
+      const storyBox = document.querySelector("#story"), storyText = document.querySelector("#story-text");
+      let storyPage = -1, storyTimer = 0;
+      function nextStory() {
+        storyPage++;
+        if (storyPage >= story.length) { storyBox.style.display = "none"; return; }
+        storyText.classList.remove("shown");
+        clearTimeout(storyTimer);
+        storyTimer = setTimeout(() => {
+          storyText.textContent = story[storyPage].split("|").join(String.fromCharCode(10));   // | は改行（テンプレートの書き出しで改行記号が壊れるため）
+          storyText.classList.toggle("title", storyPage === story.length - 1);
+          storyText.classList.add("shown");
+        }, storyPage === 0 ? 0 : 450);
+      }
+      storyBox.onclick = nextStory;
+      document.querySelector("#story-skip").onclick = e => { e.stopPropagation(); storyBox.style.display = "none"; };
+      nextStory();
+
+      // ホーム画面から開いたとき（アプリとして動いているとき）は、案内も全画面化もいらない
+      const installed = matchMedia("(display-mode: fullscreen)").matches || matchMedia("(display-mode: standalone)").matches
+        || navigator.standalone === true;
+      if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(e => console.warn(e));
+
+      // スマホでは最初に「横向きにして」→「ホーム画面に追加して」の順に案内する
+      const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      const guideRotate = document.querySelector("#guide-rotate"), guideHome = document.querySelector("#guide-home");
+      const install = document.querySelector("#install");
+      let installPrompt = null;
+      document.querySelector("#home-steps").innerHTML = ios
+        ? "<li>Safari の画面下（iPad は上）にある共有ボタン <span class='share'></span> をタップ</li>"
+          + "<li>メニューを下へずらして <b>「ホーム画面に追加」</b> をタップ</li>"
+          + "<li>右上の <b>「追加」</b> をタップ</li>"
+        : "<li>ブラウザ右上の <b>「⋮」</b>（メニュー）をタップ</li>"
+          + "<li><b>「ホーム画面に追加」</b> または <b>「アプリをインストール」</b> をタップ</li>"
+          + "<li><b>「インストール」</b>（または「追加」）をタップ</li>";
+      // Android の Chrome などでは、ボタン 1 つで追加の確認を出せる
+      window.addEventListener("beforeinstallprompt", e => {
+        e.preventDefault();
+        installPrompt = e;
+        install.style.display = "inline-block";
+      });
+      install.onclick = () => {
+        if (!installPrompt) return;
+        installPrompt.prompt();
+        installPrompt.userChoice.finally(() => { installPrompt = null; install.style.display = "none"; guideHome.style.display = "none"; });
+      };
+      window.addEventListener("appinstalled", () => { guideHome.style.display = "none"; });
+      if (touch && !installed) {
+        guideRotate.style.display = "flex";
+        // itch.io などのページに埋め込まれているときは、ホーム画面に追加してもアプリにならないので案内しない
+        const embedded = window.self !== window.top;
+        document.querySelector("#rotate-next").onclick = () => { guideRotate.style.display = "none"; if (!embedded) guideHome.style.display = "flex"; };
+        document.querySelector("#home-later").onclick = () => { guideHome.style.display = "none"; };
+      }
+
+      // 画面を回して横表示にしている間は、タッチやマウスの位置も回した画面の座標に直してから Unity に渡す
+      const stage = document.querySelector("#stage");
+      const portrait = matchMedia("(orientation: portrait) and (pointer: coarse)");
+      const nativeRect = Element.prototype.getBoundingClientRect;
+      canvas.getBoundingClientRect = function () {
+        if (!portrait.matches) return nativeRect.call(this);
+        const w = this.clientWidth, h = this.clientHeight;
+        return { left: 0, top: 0, x: 0, y: 0, right: w, bottom: h, width: w, height: h };
+      };
+      function getter(proto, name) { return Object.getOwnPropertyDescriptor(proto, name).get; }
+      function rotatePoint(target, proto) {
+        const r = nativeRect.call(stage);
+        const cx = getter(proto, "clientX").call(target), cy = getter(proto, "clientY").call(target);
+        const x = cy - r.top, y = r.right - cx;
+        for (const [name, value] of [["clientX", x], ["clientY", y], ["pageX", x], ["pageY", y], ["screenX", x], ["screenY", y]])
+          Object.defineProperty(target, name, { value: value, configurable: true });
+      }
+      function rotateEvent(e) {
+        if (!portrait.matches || !stage.contains(e.target)) return;
+        if (window.TouchEvent && e instanceof TouchEvent) {
+          for (const list of [e.touches, e.changedTouches, e.targetTouches])
+            for (let i = 0; i < list.length; i++) rotatePoint(list[i], Touch.prototype);
+        } else if (e instanceof MouseEvent) {
+          rotatePoint(e, MouseEvent.prototype);
+        }
+      }
+      for (const type of ["touchstart", "touchmove", "touchend", "touchcancel", "mousedown", "mousemove", "mouseup",
+                          "pointerdown", "pointermove", "pointerup", "pointercancel", "click", "wheel"])
+        window.addEventListener(type, rotateEvent, { capture: true, passive: true });
+
+      function showBanner(message, type) {
+        if (type !== "error") { console.warn(message); return; }
+        console.error(message);
+        loading.style.display = "none";
+        const warning = document.querySelector("#warning");
+        warning.textContent = "起動できませんでした。ページを再読み込みしてください。";
+        warning.style.display = "block";
+      }
+
+      function toggleFullscreen() {
+        const active = document.fullscreenElement || document.webkitFullscreenElement;
+        const action = active ? (document.exitFullscreen || document.webkitExitFullscreen)
+          : (document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
+        if (action) Promise.resolve(action.call(active ? document : document.documentElement)).catch(e => console.warn(e));
+      }
+      document.addEventListener("fullscreenchange", () => {
+        fullscreen.textContent = document.fullscreenElement ? "全画面を終了" : "全画面";
+      });
+
+      const buildUrl = "Build";
+      const config = {
+        arguments: [],
+        dataUrl: buildUrl + "/Web.data.unityweb",
+        frameworkUrl: buildUrl + "/Web.framework.js.unityweb",
+        codeUrl: buildUrl + "/Web.wasm.unityweb",
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "DefaultCompany",
+        productName: "OldDog",
+        productVersion: "1.0",
+        showBanner: showBanner
+      };
+      // スマホは画面が細かすぎると重いので、描画の解像度を抑える
+      if (touch) config.devicePixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
+
+      const loader = document.createElement("script");
+      loader.src = buildUrl + "/Web.loader.js";
+      loader.onerror = () => showBanner("Could not load Unity loader", "error");
+      loader.onload = () => {
+        createUnityInstance(canvas, config, progress => {
+          document.querySelector("#loading-fill").style.width = Math.round(progress * 100) + "%";
+        }).then(() => {
+          loading.style.display = "none";
+          // ブラウザは操作があるまで音を鳴らせないので、最初のクリックで始める
+          start.style.display = "flex";
+          start.onclick = () => {
+            start.style.display = "none";
+            canvas.focus();
+            // スマホでは全画面にして横向きに固定する（できないブラウザでは何もしない）
+            if (touch && !installed) {
+              const request = document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen;
+              if (request) Promise.resolve(request.call(document.documentElement))
+                .then(() => screen.orientation && screen.orientation.lock ? screen.orientation.lock("landscape") : null)
+                .catch(e => console.warn(e));
+            }
+            fullscreen.style.display = (document.fullscreenEnabled || document.webkitFullscreenEnabled) ? "block" : "none";
+          };
+          fullscreen.onclick = toggleFullscreen;
+        }).catch(message => showBanner(message, "error"));
+      };
+      document.body.appendChild(loader);
+    </script>
+  </body>
+</html>
