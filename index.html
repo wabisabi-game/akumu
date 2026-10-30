@@ -11,6 +11,10 @@
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="icon" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-180.png">
+    <!-- ストーリーの書体：ロシア語は PT Serif、日本語の字幕はペン書きのような Klee One（どちらも SIL Open Font License） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Klee+One:wght@600&family=PT+Serif:ital@0;1&display=swap">
     <title>悪夢</title>
     <style>
       html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #000; touch-action: none; overscroll-behavior: none;
@@ -35,10 +39,14 @@
       /* 最初に流すストーリー。タップ（クリック）で次の場面へ進む */
       #story { display: none; z-index: 15; cursor: pointer; padding: 24px 8%; box-sizing: border-box;
                font-family: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", serif; }
-      #story-text { max-width: 760px; font-size: clamp(16px, 2.6vmax, 24px); line-height: 2; color: #d8d0c4; white-space: pre-line;
-                    opacity: 0; transition: opacity 0.9s; }
-      #story-text.shown { opacity: 1; }
-      #story-next { position: absolute; bottom: 7%; font-size: 13px; color: #6e655a; animation: blink 2s ease-in-out infinite; }
+      /* 映画のように：ロシア語の語りを画面の中ほどに、日本語の字幕を下に出す */
+      #story-ru { max-width: 860px; margin-bottom: 14vh; font: italic clamp(15px, 2.3vmax, 26px) / 1.65 "PT Serif", Georgia, serif;
+                  color: #b9b0a3; white-space: pre-line; opacity: 0; transition: opacity 1.1s; }
+      #story-ja { position: absolute; left: 4%; right: 4%; bottom: 11%; font: 600 clamp(15px, 2.2vmax, 25px) / 1.55 "Klee One", "Hiragino Mincho ProN", serif;
+                  color: #fff; letter-spacing: 0.06em; white-space: pre-line; opacity: 0; transition: opacity 0.6s 0.35s;
+                  text-shadow: 0 0 3px #000, 0 0 3px #000, 1px 1px 2px #000; }
+      #story-ru.shown, #story-ja.shown { opacity: 1; }
+      #story-next { position: absolute; bottom: 3%; font-size: 13px; color: #6e655a; animation: blink 2s ease-in-out infinite; }
       @keyframes blink { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
       #story-skip { position: absolute; top: 14px; right: 14px; padding: 6px 14px; border: 1px solid #4a443c; border-radius: 4px;
                     background: transparent; color: #8a8178; font: 13px sans-serif; }
@@ -73,7 +81,8 @@
       <p class="hint">ヘッドホン推奨</p>
     </div>
     <div id="story" class="overlay">
-      <div id="story-text"></div>
+      <div id="story-ru" lang="ru"></div>
+      <div id="story-ja"></div>
       <div id="story-next">タップで次へ</div>
       <button id="story-skip" type="button">スキップ</button>
     </div>
@@ -105,32 +114,52 @@
       const touch = matchMedia("(pointer: coarse)").matches;
       if (!touch) document.querySelector("#story-next").textContent = "クリックで次へ";
 
-      // ストーリー（| で改行）。タイトルの後、読み込みのあいだに音楽と一緒に流し、終わるかスキップするとゲームが始まる
+      // ストーリー：[ロシア語の語り, 日本語の字幕]（| で改行）。タイトルの後、読み込みのあいだに音楽と一緒に流し、終わるかスキップするとゲームが始まる
       const story = [
-        "俺はビリヤードで食っている。|負けられない理由があった。",
-        "相棒は、年老いたボルゾイのハクだった。|目はほとんど見えず、|玉の音だけを頼りに生きていた。",
-        "借金の取り立てが、家に来るようになった。|最後の望みは、遠征先での賭け試合だった。",
-        "吠えれば通報される。|俺はハクをビリヤード部屋に閉じ込めて、鍵をかけた。|皿に、三日分の餌を盛って。",
-        "試合は九日続いた。||四日目、隣人から電話が来た。|「犬が一晩中、ドアをひっかいて鳴いている」||俺は電話の電源を切った。|集中したかった。",
-        "帰った夜、ドアの内側は爪痕でささくれていた。|床には乾いた血の筋。|皿は、なめ続けた舌の血で赤く染まっていた。",
-        "ハクは台の脚にもたれて死んでいた。||前足の片方は、肘から先がなかった。|自分で、食べたのだ。",
-        "胃の中から、玉がひとつ出てきた。|白い手球。||部屋の中で、俺の手の匂いがする、|たったひとつのもの。",
-        "すまないと思った。|だが、仕方なかった。|勝たなければ、俺たちは路上だった。",
-        "俺はあいつの骨を削り、新しい手球を作った。|お守りのつもりだった。||翌日の試合、俺は一度も外さなかった。",
-        "その夜、目を開けると、俺は台の上にいた。||骨でできた、白い手球として。",
-        "台の外で、何かが床を引きずる音がする。||三本の足。白く濁った目。|ハクだ。||あいつは、自分の骨の匂いを覚えている。",
-        "目を覚ますには、台の玉をすべてポケットに落とし、|最後に自分が落ちるしかない。||音を立てるな。|今度は、あいつが食べる番だ。",
+        ["Я живу бильярдом.|Проигрывать мне нельзя.",
+         "俺はビリヤードで食っている。|負けは許されない。"],
+        ["Моего пса звали Хаку.|Старый борзой, почти слепой.|Он жил на слух: стук шаров, мои шаги.",
+         "相棒はハク。年老いたボルゾイで、|ほとんど目が見えなかった。|玉の音と俺の足音だけを頼りに生きていた。"],
+        ["Той зимой ко мне пришли люди.|Я был должен им слишком много.",
+         "あの冬、男たちが部屋に来た。|借りが大きすぎた。"],
+        ["Последняя надежда —|подпольная игра на деньги в Ростове.",
+         "最後の望みは、|ロストフの地下の賭け試合だった。"],
+        ["Соседям Хаку не оставишь — он воет.|Я запер его в бильярдной|и насыпал корма на три дня.",
+         "隣には預けられない。あいつは吠える。|俺はハクをビリヤード部屋に閉じ込め、|三日分の餌を盛った。"],
+        ["Игра шла девять дней.|На четвёртый позвонила соседка:|«Ваша собака воет всю ночь и скребёт дверь».|Я выключил телефон.",
+         "試合は九日続いた。|四日目、隣の女から電話が来た。|「お宅の犬が一晩中鳴いて、ドアをひっかいてる」|俺は電話の電源を切った。"],
+        ["Я вернулся ночью.|Дверь изнутри изодрана когтями.|На полу — бурые полосы.|Миска вылизана до крови.",
+         "夜に帰った。|ドアの内側は爪でずたずただった。|床には茶色い筋。|皿は、血が出るまでなめ尽くされていた。"],
+        ["Хаку лежал у ножки стола.|Передней лапы не было до локтя.|Он съел её сам.",
+         "ハクは台の脚のそばで死んでいた。|前足が、肘から先なかった。|自分で食べたのだ。"],
+        ["В желудке нашёлся шар. Белый биток.|Единственное в комнате,|что пахло моими руками.",
+         "胃の中から玉がひとつ出てきた。白い手球。|部屋の中でただひとつ、|俺の手の匂いがするもの。"],
+        ["Мне было жаль. Но выбора не было.|Без той победы мы оба|замёрзли бы на улице.",
+         "すまないと思った。だが、選べなかった。|あの勝ちがなければ、|俺たちは二人とも路上で凍えていた。"],
+        ["Я выточил из его костей новый биток.|На удачу.|Наутро я не промахнулся ни разу.",
+         "俺はあいつの骨を削り、新しい手球を作った。|お守りのつもりだった。|翌朝の試合、俺は一度も外さなかった。"],
+        ["Той ночью я открыл глаза на сукне.|Белым шаром.|Из его костей.",
+         "その夜、目を開けると、俺は羅紗の上にいた。|白い玉として。|あいつの骨で、できた。"],
+        ["За бортом что-то волочится по полу.|Три лапы. Мутные белые глаза.|Он помнит запах своих костей.",
+         "台の外で、何かが床を引きずっている。|三本の足。白く濁った目。|あいつは、自分の骨の匂いを覚えている。"],
+        ["Чтобы проснуться, загони все шары в лузы|и упади последним.|Не шуми. Теперь есть будет он.",
+         "目を覚ますには、すべての玉をポケットに落とし、|最後に自分が落ちること。|音を立てるな。今度は、あいつが食べる番だ。"],
       ];
-      const storyBox = document.querySelector("#story"), storyText = document.querySelector("#story-text");
+      const storyBox = document.querySelector("#story");
+      const storyRu = document.querySelector("#story-ru"), storyJa = document.querySelector("#story-ja");
       let storyPage = -1, storyTimer = 0;
       function nextStory() {
         storyPage++;
         if (storyPage >= story.length) { endStory(); return; }
-        storyText.classList.remove("shown");
+        storyRu.classList.remove("shown");
+        storyJa.classList.remove("shown");
         clearTimeout(storyTimer);
         storyTimer = setTimeout(() => {
-          storyText.textContent = story[storyPage].split("|").join(String.fromCharCode(10));   // | は改行（テンプレートの書き出しで改行記号が壊れるため）
-          storyText.classList.add("shown");
+          const lines = text => text.split("|").join(String.fromCharCode(10));   // | は改行（テンプレートの書き出しで改行記号が壊れるため）
+          storyRu.textContent = lines(story[storyPage][0]);
+          storyJa.textContent = lines(story[storyPage][1]);
+          storyRu.classList.add("shown");
+          storyJa.classList.add("shown");
         }, storyPage === 0 ? 0 : 450);
       }
       storyBox.onclick = nextStory;
