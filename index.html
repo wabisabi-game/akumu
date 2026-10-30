@@ -11,10 +11,12 @@
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="icon" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-180.png">
-    <!-- ストーリーの書体：ロシア語は PT Serif、日本語の字幕はペン書きのような Klee One（どちらも SIL Open Font License） -->
+    <!-- ストーリーの書体：ロシア語は日記の手書きのような Marck Script（SIL Open Font License）、
+         日本語の字幕は洋画字幕風の「しねきゃぷしょん」（chiphead／雑念の塊。改変せずに同梱、条件は cinecaption-README.txt） -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Klee+One:wght@600&family=PT+Serif:ital@0;1&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marck+Script&display=swap">
+    <link rel="preload" href="cinecaption227.ttf" as="font" type="font/ttf" crossorigin>
     <title>悪夢</title>
     <style>
       html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #000; touch-action: none; overscroll-behavior: none;
@@ -39,13 +41,20 @@
       /* 最初に流すストーリー。タップ（クリック）で次の場面へ進む */
       #story { display: none; z-index: 15; cursor: pointer; padding: 24px 8%; box-sizing: border-box;
                font-family: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", serif; }
-      /* 映画のように：ロシア語の語りを画面の中ほどに、日本語の字幕を下に出す */
-      #story-ru { max-width: 860px; margin-bottom: 14vh; font: italic clamp(15px, 2.3vmax, 26px) / 1.65 "PT Serif", Georgia, serif;
-                  color: #b9b0a3; white-space: pre-line; opacity: 0; transition: opacity 1.1s; }
-      #story-ja { position: absolute; left: 4%; right: 4%; bottom: 11%; font: 600 clamp(15px, 2.2vmax, 25px) / 1.55 "Klee One", "Hiragino Mincho ProN", serif;
+      @font-face { font-family: "cinecaption"; src: url("cinecaption227.ttf") format("truetype"); font-display: swap; }
+      /* 映画のように：ロシア語の語り（日記の手書き）を画面の中ほどに、日本語の字幕を下に出す */
+      #story-ru { max-width: 860px; margin-bottom: 14vh; font: clamp(19px, 2.9vmax, 33px) / 1.5 "Marck Script", "Segoe Script", cursive;
+                  color: #c4b9a6; white-space: pre-line; opacity: 0; transition: opacity 1.1s; }
+      #story-ja { position: absolute; left: 4%; right: 4%; bottom: 11%; font: clamp(16px, 2.4vmax, 27px) / 1.5 "cinecaption", "Hiragino Mincho ProN", serif;
                   color: #fff; letter-spacing: 0.06em; white-space: pre-line; opacity: 0; transition: opacity 0.6s 0.35s;
                   text-shadow: 0 0 3px #000, 0 0 3px #000, 1px 1px 2px #000; }
-      #story-ru.shown, #story-ja.shown { opacity: 1; }
+      #story-ru.shown, #story-ja.shown, #story-credits.shown { opacity: 1; }
+      /* ストーリーの最後に出すクレジット */
+      #story-credits { display: none; max-width: 900px; font: clamp(11px, 1.45vmax, 15px) / 1.75 "cinecaption", sans-serif; color: #a89f92;
+                       opacity: 0; transition: opacity 1s; }
+      #story-credits h3 { margin: 0 0 1em; font-size: 1.5em; font-weight: normal; letter-spacing: 0.3em; color: #d8d0c4; }
+      #story-credits p { margin: 0.5em 0; }
+      #story-credits a { color: #c9bfae; }
       #story-next { position: absolute; bottom: 3%; font-size: 13px; color: #6e655a; animation: blink 2s ease-in-out infinite; }
       @keyframes blink { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
       #story-skip { position: absolute; top: 14px; right: 14px; padding: 6px 14px; border: 1px solid #4a443c; border-radius: 4px;
@@ -83,6 +92,14 @@
     <div id="story" class="overlay">
       <div id="story-ru" lang="ru"></div>
       <div id="story-ja"></div>
+      <div id="story-credits">
+        <h3>クレジット</h3>
+        <p>音楽　Hearts and Flowers（1908年録音　Victor Orchestra）　パブリックドメイン</p>
+        <p>犬の足音　<a href="https://freesound.org/people/CUeckermann/sounds/444816/" target="_blank" rel="noopener">Dog walking on hardwood floor</a>／<a href="https://freesound.org/people/CUeckermann/sounds/444819/" target="_blank" rel="noopener">Dog running on hardwood floor</a><br>
+           作者 CUeckermann（freesound.org）　<a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a></p>
+        <p>そのほかの効果音　freesound.org の CC0 素材<br>Cymeon／Za-Games／csaszi／Yarmonics／Elanor1995／ralph.whitehead／randbsoundbites／coldvet／qubodup／PanFlutist／FenrirFangs</p>
+        <p>書体　しねきゃぷしょん（chiphead・雑念の塊）／Marck Script（Denis Masharov）／M PLUS 1（The M+ FONTS Project）</p>
+      </div>
       <div id="story-next">タップで次へ</div>
       <button id="story-skip" type="button">スキップ</button>
     </div>
@@ -117,40 +134,41 @@
       // ストーリー：[ロシア語の語り, 日本語の字幕]（| で改行）。タイトルの後、読み込みのあいだに音楽と一緒に流し、終わるかスキップするとゲームが始まる
       const story = [
         ["Я живу бильярдом.|Проигрывать мне нельзя.",
-         "俺はビリヤードで食っている。|負けは許されない。"],
+         "俺はビリヤードで食ってる|負けるわけにはいかない"],
         ["Моего пса звали Хаку.|Старый борзой, почти слепой.|Он жил на слух: стук шаров, мои шаги.",
-         "相棒はハク。年老いたボルゾイで、|ほとんど目が見えなかった。|玉の音と俺の足音だけを頼りに生きていた。"],
+         "相棒はハク　年老いたボルゾイだ|目はほとんど見えず|玉の音と俺の足音だけが頼りだった"],
         ["Той зимой ко мне пришли люди.|Я был должен им слишком много.",
-         "あの冬、男たちが部屋に来た。|借りが大きすぎた。"],
+         "あの冬　取り立ての男たちが来た|借金は膨らみすぎていた"],
         ["Последняя надежда —|подпольная игра на деньги в Ростове.",
-         "最後の望みは、|ロストフの地下の賭け試合だった。"],
+         "最後の望みは|ロストフの闇の賭け試合"],
         ["Соседям Хаку не оставишь — он воет.|Я запер его в бильярдной|и насыпал корма на три дня.",
-         "隣には預けられない。あいつは吠える。|俺はハクをビリヤード部屋に閉じ込め、|三日分の餌を盛った。"],
+         "あいつは吠えるから　隣には預けられない|ビリヤード部屋に閉じ込めて|三日分の餌を置いていった"],
         ["Игра шла девять дней.|На четвёртый позвонила соседка:|«Ваша собака воет всю ночь и скребёт дверь».|Я выключил телефон.",
-         "試合は九日続いた。|四日目、隣の女から電話が来た。|「お宅の犬が一晩中鳴いて、ドアをひっかいてる」|俺は電話の電源を切った。"],
+         "試合は九日続いた|四日目　隣の女から電話が来た|「お宅の犬が一晩中鳴いて　ドアを引っかいてる」|俺は電話の電源を切った"],
         ["Я вернулся ночью.|Дверь изнутри изодрана когтями.|На полу — бурые полосы.|Миска вылизана до крови.",
-         "夜に帰った。|ドアの内側は爪でずたずただった。|床には茶色い筋。|皿は、血が出るまでなめ尽くされていた。"],
+         "夜中に帰った|ドアの内側は爪痕だらけ|床には茶色い筋|皿は血がにじむまで　なめ尽くされていた"],
         ["Хаку лежал у ножки стола.|Передней лапы не было до локтя.|Он съел её сам.",
-         "ハクは台の脚のそばで死んでいた。|前足が、肘から先なかった。|自分で食べたのだ。"],
+         "ハクは台の脚のそばで死んでいた|前足が　肘から先なくなっていた|自分で食ったんだ"],
         ["В желудке нашёлся шар. Белый биток.|Единственное в комнате,|что пахло моими руками.",
-         "胃の中から玉がひとつ出てきた。白い手球。|部屋の中でただひとつ、|俺の手の匂いがするもの。"],
+         "胃の中から玉が出てきた　白い手球だ|部屋の中でただ一つ|俺の手の匂いがする物"],
         ["Мне было жаль. Но выбора не было.|Без той победы мы оба|замёрзли бы на улице.",
-         "すまないと思った。だが、選べなかった。|あの勝ちがなければ、|俺たちは二人とも路上で凍えていた。"],
+         "悪いとは思った　だが仕方なかった|あの勝ちがなければ|俺もあいつも　路上で凍え死んでいた"],
         ["Я выточил из его костей новый биток.|На удачу.|Наутро я не промахнулся ни разу.",
-         "俺はあいつの骨を削り、新しい手球を作った。|お守りのつもりだった。|翌朝の試合、俺は一度も外さなかった。"],
+         "あいつの骨を削って|新しい手球を作った　お守りだ|翌朝の試合　一度も外さなかった"],
         ["Той ночью я открыл глаза на сукне.|Белым шаром.|Из его костей.",
-         "その夜、目を開けると、俺は羅紗の上にいた。|白い玉として。|あいつの骨で、できた。"],
+         "その夜　目を開けると|俺は羅紗の上にいた|白い玉になって|あいつの骨でできた玉に"],
         ["За бортом что-то волочится по полу.|Три лапы. Мутные белые глаза.|Он помнит запах своих костей.",
-         "台の外で、何かが床を引きずっている。|三本の足。白く濁った目。|あいつは、自分の骨の匂いを覚えている。"],
+         "台の外で　何かが床を引きずっている|三本の脚　白く濁った目|あいつは　自分の骨の匂いを覚えている"],
         ["Чтобы проснуться, загони все шары в лузы|и упади последним.|Не шуми. Теперь есть будет он.",
-         "目を覚ますには、すべての玉をポケットに落とし、|最後に自分が落ちること。|音を立てるな。今度は、あいつが食べる番だ。"],
+         "目覚めたければ　玉を全部ポケットに落とし|最後に自分が落ちろ|音を立てるな|今度は　あいつが食う番だ"],
       ];
       const storyBox = document.querySelector("#story");
       const storyRu = document.querySelector("#story-ru"), storyJa = document.querySelector("#story-ja");
       let storyPage = -1, storyTimer = 0;
       function nextStory() {
         storyPage++;
-        if (storyPage >= story.length) { endStory(); return; }
+        if (storyPage > story.length) { endStory(); return; }
+        if (storyPage === story.length) { showCredits(); return; }
         storyRu.classList.remove("shown");
         storyJa.classList.remove("shown");
         clearTimeout(storyTimer);
@@ -162,8 +180,21 @@
           storyJa.classList.add("shown");
         }, storyPage === 0 ? 0 : 450);
       }
+      // クレジット（作者名の表記が必要な素材があるので、スキップしても必ず 1 回は見せる）
+      const credits = document.querySelector("#story-credits");
+      function showCredits() {
+        storyPage = story.length;
+        clearTimeout(storyTimer);
+        storyRu.classList.remove("shown");
+        storyJa.classList.remove("shown");
+        storyRu.style.display = storyJa.style.display = "none";
+        document.querySelector("#story-skip").style.display = "none";
+        credits.style.display = "block";
+        storyTimer = setTimeout(() => credits.classList.add("shown"), 50);
+      }
+      for (const a of credits.querySelectorAll("a")) a.onclick = e => e.stopPropagation();   // リンクを押しても先へ進まない
       storyBox.onclick = nextStory;
-      document.querySelector("#story-skip").onclick = e => { e.stopPropagation(); endStory(); };
+      document.querySelector("#story-skip").onclick = e => { e.stopPropagation(); showCredits(); };
 
       // 悪夢の音楽：1908 年のレコード「Hearts and Flowers」（パブリックドメイン、針音を取り除いたもの）を無限にループする。
       // ストーリーから流れ続け、ゲームでは少し控えめにし、悪夢から覚めたとき（脱出）にフェードアウトして止める。次の夜でまた流れる。
