@@ -397,7 +397,7 @@
         productVersion: "1.0",
         showBanner: showBanner
       };
-      config.devicePixelRatio = Math.min(window.devicePixelRatio || 1, 2);   // 画質優先。3 倍の画面でも 2 倍までにして重くなりすぎないようにする
+      config.devicePixelRatio = Math.min(window.devicePixelRatio || 1, 3);   // 画面本来の細かさで描く（文字がくっきりする）。3D の重さはゲーム側で画素数を抑える
 
       const loader = document.createElement("script");
       loader.src = buildUrl + "/Web.loader.js";
