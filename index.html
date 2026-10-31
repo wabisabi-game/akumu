@@ -48,6 +48,9 @@
       #story-ja { position: absolute; left: 4%; right: 4%; bottom: 11%; font: clamp(16px, 2.4vmax, 27px) / 1.5 "cinecaption", "Hiragino Mincho ProN", serif;
                   color: #fff; letter-spacing: 0.06em; white-space: pre-line; opacity: 0; transition: opacity 0.6s 0.35s;
                   text-shadow: 0 0 3px #000, 0 0 3px #000, 1px 1px 2px #000; }
+      /* 日記帳のように、ロシア語の各行の下に薄い罫線を引く（行の高さごとに 1 本） */
+      #story-ru { padding: 0 1.2em; background-image: linear-gradient(to bottom, transparent calc(100% - 1px), rgba(196, 185, 166, 0.22) calc(100% - 1px));
+                  background-size: 100% 1.5em; background-position: 0 -0.12em; }
       #story-ru.shown, #story-ja.shown, #story-credits.shown { opacity: 1; }
       /* ストーリーの最後に出すクレジット */
       #story-credits { display: none; max-width: 900px; font: clamp(11px, 1.45vmax, 15px) / 1.75 "cinecaption", sans-serif; color: #a89f92;
