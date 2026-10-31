@@ -171,7 +171,7 @@
         setText("#story-next", touch ? L("タップで次へ", "Tap to continue", "Коснитесь, чтобы продолжить")
                                      : L("クリックで次へ", "Click to continue", "Нажмите, чтобы продолжить"));
         setText("#story-skip", L("スキップ", "Skip", "Пропустить"));
-        setText("#credits-title", L("クレジット", "Credits", "Благодарности"));
+        setText("#credits-title", L("クレジット", "Credits", "Титры"));
         const c = document.querySelectorAll("#story-credits p");
         c[0].firstChild.textContent = L("音楽　", "Music: ", "Музыка: ");
         c[0].lastChild.textContent = L("Hearts and Flowers（1908年録音　Victor Orchestra）　パブリックドメイン",
@@ -251,8 +251,7 @@
       let storyPage = -1, storyTimer = 0;
       function nextStory() {
         storyPage++;
-        if (storyPage > story.length) { endStory(); return; }
-        if (storyPage === story.length) { showCredits(); return; }
+        if (storyPage >= story.length) { endStory(); return; }
         storyRu.classList.remove("shown");
         storyJa.classList.remove("shown");
         clearTimeout(storyTimer);
@@ -268,21 +267,29 @@
         storyRu.textContent = lines(story[storyPage][0]);
         storyJa.textContent = lines(story[storyPage][lang === "en" ? 2 : 1]);
       }
-      // クレジット（作者名の表記が必要な素材があるので、スキップしても必ず 1 回は見せる）
+      // クレジット：ゲームの設定画面の「クレジット」から、ストーリーの画面を借りて出す。タップで閉じてゲームに戻る
       const credits = document.querySelector("#story-credits");
-      function showCredits() {
-        storyPage = story.length;
-        clearTimeout(storyTimer);
-        storyRu.classList.remove("shown");
-        storyJa.classList.remove("shown");
+      let creditsOpen = false;
+      window.akumuShowCredits = () => {
+        creditsOpen = true;
         storyRu.style.display = storyJa.style.display = "none";
         document.querySelector("#story-skip").style.display = "none";
+        setText("#story-next", touch ? L("タップで閉じる", "Tap to close", "Коснитесь, чтобы закрыть")
+                                     : L("クリックで閉じる", "Click to close", "Нажмите, чтобы закрыть"));
+        storyBox.style.display = "flex";
         credits.style.display = "block";
-        storyTimer = setTimeout(() => credits.classList.add("shown"), 50);
+        setTimeout(() => credits.classList.add("shown"), 50);
+      };
+      function closeCredits() {
+        creditsOpen = false;
+        credits.classList.remove("shown");
+        credits.style.display = "none";
+        storyBox.style.display = "none";
+        canvas.focus();
       }
-      for (const a of credits.querySelectorAll("a")) a.onclick = e => e.stopPropagation();   // リンクを押しても先へ進まない
-      storyBox.onclick = nextStory;
-      document.querySelector("#story-skip").onclick = e => { e.stopPropagation(); showCredits(); };
+      for (const a of credits.querySelectorAll("a")) a.onclick = e => e.stopPropagation();   // リンクを押しても閉じない
+      storyBox.onclick = () => creditsOpen ? closeCredits() : nextStory();
+      document.querySelector("#story-skip").onclick = e => { e.stopPropagation(); endStory(); };
 
       // 悪夢の音楽：1908 年のレコード「Hearts and Flowers」（パブリックドメイン、針音を取り除いたもの）を無限にループする。
       // ストーリーから流れ続け、ゲームでは少し控えめにし、悪夢から覚めたとき（脱出）にフェードアウトして止める。次の夜でまた流れる。
