@@ -40,7 +40,7 @@
       #title .hint { margin-top: 36px; font-size: 14px; letter-spacing: 0.2em; color: #6e655a; }
       #warning { display: none; position: fixed; top: 12%; left: 8%; right: 8%; padding: 16px; color: #fff; background: #542d31; font: 16px sans-serif; }
       /* 最初に流すストーリー。タップ（クリック）で次の場面へ進む */
-      #story { display: none; z-index: 15; cursor: pointer; padding: 24px 8%; box-sizing: border-box;
+      #story { display: none; z-index: 15; cursor: pointer; padding: 24px 8%; box-sizing: border-box; overflow: hidden;
                font-family: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", serif; }
       @font-face { font-family: "cinecaption"; src: url("cinecaption227.ttf") format("truetype"); font-display: swap; }
       /* 映画のように：ロシア語の語り（日記の手書き）を画面の中ほどに、日本語の字幕を下に出す */
@@ -59,6 +59,11 @@
       #story-credits h3 { margin: 0 0 1em; font-size: 1.5em; font-weight: normal; letter-spacing: 0.3em; color: #d8d0c4; }
       #story-credits p { margin: 0.5em 0; }
       #story-credits a { color: #c9bfae; }
+      /* 最後の夜のあとのエンドロール：題名から始まり、ゆっくり上へ流れる */
+      #credits-end { display: none; margin: 0 0 2.2em; font-size: 2.6em; letter-spacing: 0.4em; color: #e8e0d4; }
+      #story-credits.rolling #credits-end { display: block; }
+      #story-credits.rolling { animation: roll 30s linear forwards; }
+      @keyframes roll { from { transform: translateY(calc(50vh + 60%)); } to { transform: translateY(calc(-50vh - 60%)); } }
       /* スマホ（横にした画面の高さが 400px 前後）は文字を小さめにして、画面からはみ出さないようにする */
       .touch #story-ru { font-size: 19px; margin-bottom: 105px; }
       .touch #story-ja { font-size: 14px; bottom: 9%; }
@@ -112,6 +117,7 @@
       <div id="story-ru" lang="ru"></div>
       <div id="story-ja"></div>
       <div id="story-credits">
+        <div id="credits-end">悪夢</div>
         <h3 id="credits-title">クレジット</h3>
         <p>音楽　<span>Hearts and Flowers（1908年録音　Victor Orchestra）　パブリックドメイン</span></p>
         <p>犬の足音　<span><a href="https://freesound.org/people/CUeckermann/sounds/444816/" target="_blank" rel="noopener">Dog walking on hardwood floor</a> / <a href="https://freesound.org/people/CUeckermann/sounds/444819/" target="_blank" rel="noopener">Dog running on hardwood floor</a></span><br>
@@ -172,6 +178,7 @@
                                      : L("クリックで次へ", "Click to continue", "Нажмите, чтобы продолжить"));
         setText("#story-skip", L("スキップ", "Skip", "Пропустить"));
         setText("#credits-title", L("クレジット", "Credits", "Титры"));
+        setText("#credits-end", L("悪夢", "Nightmare", "Кошмар"));
         const c = document.querySelectorAll("#story-credits p");
         c[0].firstChild.textContent = L("音楽　", "Music: ", "Музыка: ");
         c[0].lastChild.textContent = L("Hearts and Flowers（1908年録音　Victor Orchestra）　パブリックドメイン",
@@ -206,25 +213,25 @@
         ["Я живу бильярдом.|Проигрывать мне нельзя.",
          "俺はビリヤードで食ってる|負けるわけにはいかない",
          "I make my living at billiards.|I can't afford to lose."],
-        ["Моего пса звали Туман.|Старый борзой, почти слепой.|Он жил на слух: стук шаров, мои шаги.",
+        ["Моего пса звали Туман.|Старый борзой пёс, почти слепой.|Он жил на слух: стук шаров, мои шаги.",
          "相棒はトゥマン　年老いたボルゾイだ|目はほとんど見えず|玉の音と俺の足音だけが頼りだった",
          "My partner was Tuman, an old borzoi.|Nearly blind.|He lived by the click of the balls and my footsteps."],
         ["Той зимой ко мне пришли люди.|Я был должен им слишком много.",
          "あの冬　取り立ての男たちが来た|借金は膨らみすぎていた",
-         "That winter, the collectors came.|My debts had grown too big."],
+         "That winter, the collectors came.|I owed them more than I could pay."],
         ["Последняя надежда —|подпольная игра на деньги в Ростове.",
          "最後の望みは|ロストフの闇の賭け試合",
-         "My last hope was|an underground money game in Rostov."],
+         "My last hope was|a high-stakes underground game in Rostov."],
         ["Соседям Тумана не оставишь — он воет.|Я запер его в бильярдной|и насыпал корма на три дня.",
          "あいつは吠えるから　隣には預けられない|ビリヤード部屋に閉じ込めて|三日分の餌を置いていった",
-         "He howls, so no neighbour would take him.|I locked him in the billiard room|with three days of food."],
+         "He howled, so no neighbour would take him.|I locked him in the billiard room|with three days of food."],
         ["Игра шла девять дней.|На четвёртый позвонила соседка:|«Ваша собака воет всю ночь и скребёт дверь».|Я выключил телефон.",
          "試合は九日続いた|四日目　隣の女から電話が来た|「お宅の犬が一晩中鳴いて　ドアを引っかいてる」|俺は電話の電源を切った",
          "The game ran nine days.|On the fourth, the neighbour called.|“Your dog howls all night and claws at the door.”|I switched off my phone."],
         ["Я вернулся ночью.|Дверь изнутри изодрана когтями.|На полу — бурые полосы.|Миска вылизана до крови.",
          "夜中に帰った|ドアの内側は爪痕だらけ|床には茶色い筋|皿は血がにじむまで　なめ尽くされていた",
-         "I came home at night.|The inside of the door was torn by claws.|Brown streaks on the floor.|The bowl licked until it bled."],
-        ["Туман лежал у ножки стола.|Передней лапы не было до локтя.|Он съел её сам.",
+         "I came home at night.|The inside of the door was torn by claws.|Brown streaks on the floor.|The bowl licked clean, its rim smeared with blood."],
+        ["Туман лежал у ножки стола.|Передней лапы не было ниже локтя.|Он съел её сам.",
          "トゥマンは台の脚のそばで死んでいた|前足が　肘から先なくなっていた|自分で食ったんだ",
          "Tuman lay dead by the leg of the table.|His front leg was gone below the elbow.|He had eaten it himself."],
         ["В желудке нашёлся шар. Белый биток.|Единственное в комнате,|что пахло моими руками.",
@@ -232,19 +239,19 @@
          "In his stomach I found a ball. The white cue ball.|The only thing in that room|that smelled of my hands."],
         ["Мне было жаль. Но выбора не было.|Без той победы мы оба|замёрзли бы на улице.",
          "悪いとは思った　だが仕方なかった|あの勝ちがなければ|俺もあいつも　路上で凍え死んでいた",
-         "I felt bad. But I had no choice.|Without that win, we both|would have frozen in the street."],
+         "I was sorry. But I had no choice.|Without that win, we both|would have frozen in the street."],
         ["Я выточил из его костей новый биток.|На удачу.|Наутро я не промахнулся ни разу.",
          "あいつの骨を削って|新しい手球を作った　お守りだ|翌朝の試合　一度も外さなかった",
-         "I carved a new cue ball from his bones.|For luck.|The next morning I never missed once."],
+         "I carved a new cue ball from his bones.|For luck.|The next morning, I didn't miss a single shot."],
         ["Той ночью я открыл глаза на сукне.|Белым шаром.|Из его костей.",
          "その夜　目を開けると|俺は羅紗の上にいた|白い玉になって|あいつの骨でできた玉に",
-         "That night I opened my eyes|on the cloth.|A white ball.|Made of his bones."],
+         "That night I opened my eyes|on the baize.|A white ball.|Made of his bones."],
         ["За бортом что-то волочится по полу.|Три лапы. Мутные белые глаза.|Он помнит запах своих костей.",
          "台の外で　何かが床を引きずっている|三本の脚　白く濁った目|あいつは　自分の骨の匂いを覚えている",
          "Beyond the rail, something drags across the floor.|Three legs. Milky white eyes.|He remembers the smell of his own bones."],
-        ["Чтобы проснуться, загони все шары в лузы|и упади последним.|Не шуми. Теперь есть будет он.",
+        ["Чтобы проснуться, загони все шары в лузы|а последним упади сам.|Не шуми. Теперь его очередь есть.",
          "目覚めたければ　玉を全部ポケットに落とし|最後に自分が落ちろ|音を立てるな|今度は　あいつが食う番だ",
-         "If you want to wake, sink every ball|and fall in last.|Make no sound.|Now it's his turn to eat."],
+         "If you want to wake, sink every ball|then sink yourself last.|Make no sound.|Now it's his turn to eat."],
       ];
       const storyBox = document.querySelector("#story");
       const storyRu = document.querySelector("#story-ru"), storyJa = document.querySelector("#story-ja");
@@ -270,8 +277,9 @@
       // クレジット：ゲームの設定画面の「クレジット」から、ストーリーの画面を借りて出す。タップで閉じてゲームに戻る
       const credits = document.querySelector("#story-credits");
       let creditsOpen = false;
-      window.akumuShowCredits = () => {
+      window.akumuShowCredits = ending => {
         creditsOpen = true;
+        credits.classList.toggle("rolling", !!ending);
         storyRu.style.display = storyJa.style.display = "none";
         document.querySelector("#story-skip").style.display = "none";
         setText("#story-next", touch ? L("タップで閉じる", "Tap to close", "Коснитесь, чтобы закрыть")
@@ -280,9 +288,10 @@
         credits.style.display = "block";
         setTimeout(() => credits.classList.add("shown"), 50);
       };
+      credits.addEventListener("animationend", () => { if (creditsOpen) closeCredits(); });   // 流れ終わったら閉じる
       function closeCredits() {
         creditsOpen = false;
-        credits.classList.remove("shown");
+        credits.classList.remove("shown", "rolling");
         credits.style.display = "none";
         storyBox.style.display = "none";
         canvas.focus();
