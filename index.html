@@ -15,7 +15,8 @@
          日本語の字幕は洋画字幕風の「しねきゃぷしょん」（chiphead／雑念の塊。改変せずに同梱、条件は cinecaption-README.txt） -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marck+Script&display=swap">
+    <!-- タイトルの書体：英語は IM FELL English、ロシア語は Old Standard TT（どちらも SIL Open Font License） -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English&family=Marck+Script&family=Old+Standard+TT:wght@700&display=swap">
     <link rel="preload" href="cinecaption227.ttf" as="font" type="font/ttf" crossorigin>
     <title>悪夢</title>
     <style>
@@ -67,6 +68,12 @@
       .touch #story-credits p { margin: 0.3em 0; }
       .touch #title h1 { font-size: 54px; }
       .touch #title .hint { margin-top: 26px; }
+      /* 英語・ロシア語のとき：タイトルはそれぞれの古い活字で。ロシア語では字幕を出さず、手書きの語りだけを読む */
+      [data-lang="en"] #title h1 { font-family: "IM Fell English", Georgia, serif; letter-spacing: 0.12em; text-indent: 0.12em; }
+      [data-lang="ru"] #title h1 { font-family: "Old Standard TT", Georgia, serif; font-weight: 700; letter-spacing: 0.12em; text-indent: 0.12em; }
+      [data-lang="ru"] #story-ja { display: none; }
+      [data-lang="ru"] #story-ru { margin-bottom: 4vh; }
+      [data-lang="en"] #story-ja { letter-spacing: 0.02em; }
       #story-next { position: absolute; bottom: 3%; font-size: 13px; color: #6e655a; animation: blink 2s ease-in-out infinite; }
       @keyframes blink { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
       #story-skip { position: absolute; top: 14px; right: 14px; padding: 6px 14px; border: 1px solid #4a443c; border-radius: 4px;
@@ -94,7 +101,7 @@
     <div id="stage">
     <canvas id="unity-canvas" width=1280 height=720 tabindex="-1"></canvas>
     <div id="loading" class="overlay">
-      <div>読み込み中…</div>
+      <div id="loading-text">読み込み中…</div>
       <div id="loading-bar"><div id="loading-fill"></div></div>
     </div>
     <div id="title" class="overlay">
@@ -105,12 +112,12 @@
       <div id="story-ru" lang="ru"></div>
       <div id="story-ja"></div>
       <div id="story-credits">
-        <h3>クレジット</h3>
-        <p>音楽　Hearts and Flowers（1908年録音　Victor Orchestra）　パブリックドメイン</p>
-        <p>犬の足音　<a href="https://freesound.org/people/CUeckermann/sounds/444816/" target="_blank" rel="noopener">Dog walking on hardwood floor</a>／<a href="https://freesound.org/people/CUeckermann/sounds/444819/" target="_blank" rel="noopener">Dog running on hardwood floor</a><br>
-           作者 CUeckermann（freesound.org）　<a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a></p>
+        <h3 id="credits-title">クレジット</h3>
+        <p>音楽　<span>Hearts and Flowers（1908年録音　Victor Orchestra）　パブリックドメイン</span></p>
+        <p>犬の足音　<span><a href="https://freesound.org/people/CUeckermann/sounds/444816/" target="_blank" rel="noopener">Dog walking on hardwood floor</a> / <a href="https://freesound.org/people/CUeckermann/sounds/444819/" target="_blank" rel="noopener">Dog running on hardwood floor</a></span><br>
+           <span class="by">作者 CUeckermann（freesound.org）　</span><a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a></p>
         <p>そのほかの効果音　freesound.org の CC0 素材<br>Cymeon／Za-Games／csaszi／Yarmonics／Elanor1995／ralph.whitehead／randbsoundbites／coldvet／qubodup／PanFlutist／FenrirFangs</p>
-        <p>書体　しねきゃぷしょん（chiphead・雑念の塊）／Marck Script（Denis Masharov）／しっぽり明朝 B1（The Shippori Mincho Project Authors）</p>
+        <p>書体　しねきゃぷしょん（chiphead・雑念の塊）／Marck Script（Denis Masharov）／しっぽり明朝 B1（The Shippori Mincho Project Authors）／IM FELL English（Igino Marini）／Old Standard TT（Alexey Kryukov）</p>
       </div>
       <div id="story-next">タップで次へ</div>
       <button id="story-skip" type="button">スキップ</button>
@@ -118,8 +125,8 @@
     <div id="warning" role="alert"></div>
     <button id="fullscreen" type="button">全画面</button>
     <div id="guide-home" class="overlay guide">
-      <h2>ホーム画面に追加しよう</h2>
-      <p>ホーム画面から開くと、アプリのように全画面で遊べます</p>
+      <h2 id="home-title">ホーム画面に追加しよう</h2>
+      <p id="home-text">ホーム画面から開くと、アプリのように全画面で遊べます</p>
       <ol id="home-steps"></ol>
       <div class="buttons">
         <button id="install" class="primary" type="button" style="display: none">ホーム画面に追加</button>
@@ -130,9 +137,9 @@
     <!-- 横向きの案内は、縦に持っていても読めるように画面の向きのまま出す -->
     <div id="guide-rotate" class="overlay guide">
       <div class="phone"></div>
-      <h2>スマホを横向きにしてください</h2>
-      <p>横向きに持って遊ぶゲームです</p>
-      <p class="note">縦のままでも、画面は横向きに表示されます</p>
+      <h2 id="rotate-title">スマホを横向きにしてください</h2>
+      <p id="rotate-text">横向きに持って遊ぶゲームです</p>
+      <p id="rotate-note" class="note">縦のままでも、画面は横向きに表示されます</p>
       <div class="buttons"><button id="rotate-next" class="primary" type="button">次へ</button></div>
     </div>
     <script>
@@ -142,38 +149,102 @@
       const fullscreen = document.querySelector("#fullscreen");
       const touch = matchMedia("(pointer: coarse)").matches;
       if (touch) document.documentElement.classList.add("touch");   // スマホ用の文字の大きさに切り替える
-      if (!touch) document.querySelector("#story-next").textContent = "クリックで次へ";
 
-      // ストーリー：[ロシア語の語り, 日本語の字幕]（| で改行）。タイトルの後、読み込みのあいだに音楽と一緒に流し、終わるかスキップするとゲームが始まる
+      // 言語（日本語・英語・ロシア語）。ゲームの設定画面で変えるとここにも届く。初めてのときは端末の言語に合わせる
+      const langs = ["ja", "en", "ru"];
+      let lang = null;
+      try { lang = localStorage.getItem("akumu.lang"); } catch (e) {}
+      if (!langs.includes(lang)) {
+        const n = (navigator.language || "").toLowerCase();
+        lang = n.startsWith("ja") ? "ja" : n.startsWith("ru") ? "ru" : "en";
+        try { localStorage.setItem("akumu.lang", lang); } catch (e) {}
+      }
+      const L = (ja, en, ru) => lang === "en" ? en : lang === "ru" ? ru : ja;
+      const setText = (sel, text) => { const el = document.querySelector(sel); if (el) el.textContent = text; };
+      function applyLang() {
+        document.documentElement.lang = lang;
+        document.documentElement.dataset.lang = lang;
+        document.title = L("悪夢", "Nightmare", "Кошмар");
+        setText("#loading-text", L("読み込み中…", "Loading…", "Загрузка…"));
+        setText("#title h1", L("悪夢", "Nightmare", "Кошмар"));
+        setText("#title .hint", L("ヘッドホン推奨", "Headphones recommended", "Играйте в наушниках"));
+        setText("#story-next", touch ? L("タップで次へ", "Tap to continue", "Коснитесь, чтобы продолжить")
+                                     : L("クリックで次へ", "Click to continue", "Нажмите, чтобы продолжить"));
+        setText("#story-skip", L("スキップ", "Skip", "Пропустить"));
+        setText("#credits-title", L("クレジット", "Credits", "Благодарности"));
+        const c = document.querySelectorAll("#story-credits p");
+        c[0].firstChild.textContent = L("音楽　", "Music: ", "Музыка: ");
+        c[0].lastChild.textContent = L("Hearts and Flowers（1908年録音　Victor Orchestra）　パブリックドメイン",
+          "Hearts and Flowers (recorded 1908, Victor Orchestra), public domain",
+          "Hearts and Flowers (запись 1908 г., Victor Orchestra), общественное достояние");
+        c[1].firstChild.textContent = L("犬の足音　", "Dog footsteps: ", "Шаги собаки: ");
+        c[1].querySelector(".by").textContent = L("作者 CUeckermann（freesound.org）　", "by CUeckermann (freesound.org), ", "автор CUeckermann (freesound.org), ");
+        c[2].firstChild.textContent = L("そのほかの効果音　freesound.org の CC0 素材", "Other sound effects: CC0 sounds from freesound.org", "Прочие звуки: материалы CC0 с freesound.org");
+        c[3].textContent = L("書体　", "Fonts: ", "Шрифты: ") + "cinecaption"
+          + L("（chiphead・雑念の塊）", " (chiphead, 雑念の塊)", " (chiphead, 雑念の塊)")
+          + " / Marck Script (Denis Masharov) / " + L("しっぽり明朝 B1", "Shippori Mincho B1", "Shippori Mincho B1")
+          + " (The Shippori Mincho Project Authors) / IM FELL English (Igino Marini) / Old Standard TT (Alexey Kryukov)";
+        setText("#rotate-title", L("スマホを横向きにしてください", "Turn your phone sideways", "Поверните телефон горизонтально"));
+        setText("#rotate-text", L("横向きに持って遊ぶゲームです", "This game is played in landscape", "В эту игру играют, держа телефон горизонтально"));
+        setText("#rotate-note", L("縦のままでも、画面は横向きに表示されます", "Even held upright, the screen is shown sideways",
+                                  "Даже если держать вертикально, экран будет повёрнут"));
+        setText("#rotate-next", L("次へ", "Next", "Далее"));
+        setText("#home-title", L("ホーム画面に追加しよう", "Add it to your home screen", "Добавьте на главный экран"));
+        setText("#home-text", L("ホーム画面から開くと、アプリのように全画面で遊べます", "Opened from the home screen, it plays full screen like an app",
+                                "С главного экрана игра откроется на весь экран, как приложение"));
+        setText("#install", L("ホーム画面に追加", "Add to home screen", "Добавить"));
+        setText("#home-later", L("あとで", "Later", "Позже"));
+        setText("#fullscreen", (document.fullscreenElement || document.webkitFullscreenElement)
+          ? L("全画面を終了", "Exit full screen", "Выйти из полноэкранного")
+          : L("全画面", "Full screen", "Полный экран"));
+        if (typeof fillHomeSteps === "function") fillHomeSteps();
+        if (typeof showStoryPage === "function") showStoryPage();
+      }
+
+      // ストーリー：[ロシア語の語り, 日本語の字幕, 英語の字幕]（| で改行）。ロシア語で遊ぶときは字幕を出さない。タイトルの後、読み込みのあいだに音楽と一緒に流し、終わるかスキップするとゲームが始まる
       const story = [
         ["Я живу бильярдом.|Проигрывать мне нельзя.",
-         "俺はビリヤードで食ってる|負けるわけにはいかない"],
-        ["Моего пса звали Хаку.|Старый борзой, почти слепой.|Он жил на слух: стук шаров, мои шаги.",
-         "相棒はハク　年老いたボルゾイだ|目はほとんど見えず|玉の音と俺の足音だけが頼りだった"],
+         "俺はビリヤードで食ってる|負けるわけにはいかない",
+         "I make my living at billiards.|I can't afford to lose."],
+        ["Моего пса звали Туман.|Старый борзой, почти слепой.|Он жил на слух: стук шаров, мои шаги.",
+         "相棒はトゥマン　年老いたボルゾイだ|目はほとんど見えず|玉の音と俺の足音だけが頼りだった",
+         "My partner was Tuman, an old borzoi.|Nearly blind.|He lived by the click of the balls and my footsteps."],
         ["Той зимой ко мне пришли люди.|Я был должен им слишком много.",
-         "あの冬　取り立ての男たちが来た|借金は膨らみすぎていた"],
+         "あの冬　取り立ての男たちが来た|借金は膨らみすぎていた",
+         "That winter, the collectors came.|My debts had grown too big."],
         ["Последняя надежда —|подпольная игра на деньги в Ростове.",
-         "最後の望みは|ロストフの闇の賭け試合"],
-        ["Соседям Хаку не оставишь — он воет.|Я запер его в бильярдной|и насыпал корма на три дня.",
-         "あいつは吠えるから　隣には預けられない|ビリヤード部屋に閉じ込めて|三日分の餌を置いていった"],
+         "最後の望みは|ロストフの闇の賭け試合",
+         "My last hope was|an underground money game in Rostov."],
+        ["Соседям Тумана не оставишь — он воет.|Я запер его в бильярдной|и насыпал корма на три дня.",
+         "あいつは吠えるから　隣には預けられない|ビリヤード部屋に閉じ込めて|三日分の餌を置いていった",
+         "He howls, so no neighbour would take him.|I locked him in the billiard room|with three days of food."],
         ["Игра шла девять дней.|На четвёртый позвонила соседка:|«Ваша собака воет всю ночь и скребёт дверь».|Я выключил телефон.",
-         "試合は九日続いた|四日目　隣の女から電話が来た|「お宅の犬が一晩中鳴いて　ドアを引っかいてる」|俺は電話の電源を切った"],
+         "試合は九日続いた|四日目　隣の女から電話が来た|「お宅の犬が一晩中鳴いて　ドアを引っかいてる」|俺は電話の電源を切った",
+         "The game ran nine days.|On the fourth, the neighbour called.|“Your dog howls all night and claws at the door.”|I switched off my phone."],
         ["Я вернулся ночью.|Дверь изнутри изодрана когтями.|На полу — бурые полосы.|Миска вылизана до крови.",
-         "夜中に帰った|ドアの内側は爪痕だらけ|床には茶色い筋|皿は血がにじむまで　なめ尽くされていた"],
-        ["Хаку лежал у ножки стола.|Передней лапы не было до локтя.|Он съел её сам.",
-         "ハクは台の脚のそばで死んでいた|前足が　肘から先なくなっていた|自分で食ったんだ"],
+         "夜中に帰った|ドアの内側は爪痕だらけ|床には茶色い筋|皿は血がにじむまで　なめ尽くされていた",
+         "I came home at night.|The inside of the door was torn by claws.|Brown streaks on the floor.|The bowl licked until it bled."],
+        ["Туман лежал у ножки стола.|Передней лапы не было до локтя.|Он съел её сам.",
+         "トゥマンは台の脚のそばで死んでいた|前足が　肘から先なくなっていた|自分で食ったんだ",
+         "Tuman lay dead by the leg of the table.|His front leg was gone below the elbow.|He had eaten it himself."],
         ["В желудке нашёлся шар. Белый биток.|Единственное в комнате,|что пахло моими руками.",
-         "胃の中から玉が出てきた　白い手球だ|部屋の中でただ一つ|俺の手の匂いがする物"],
+         "胃の中から玉が出てきた　白い手球だ|部屋の中でただ一つ|俺の手の匂いがする物",
+         "In his stomach I found a ball. The white cue ball.|The only thing in that room|that smelled of my hands."],
         ["Мне было жаль. Но выбора не было.|Без той победы мы оба|замёрзли бы на улице.",
-         "悪いとは思った　だが仕方なかった|あの勝ちがなければ|俺もあいつも　路上で凍え死んでいた"],
+         "悪いとは思った　だが仕方なかった|あの勝ちがなければ|俺もあいつも　路上で凍え死んでいた",
+         "I felt bad. But I had no choice.|Without that win, we both|would have frozen in the street."],
         ["Я выточил из его костей новый биток.|На удачу.|Наутро я не промахнулся ни разу.",
-         "あいつの骨を削って|新しい手球を作った　お守りだ|翌朝の試合　一度も外さなかった"],
+         "あいつの骨を削って|新しい手球を作った　お守りだ|翌朝の試合　一度も外さなかった",
+         "I carved a new cue ball from his bones.|For luck.|The next morning I never missed once."],
         ["Той ночью я открыл глаза на сукне.|Белым шаром.|Из его костей.",
-         "その夜　目を開けると|俺は羅紗の上にいた|白い玉になって|あいつの骨でできた玉に"],
+         "その夜　目を開けると|俺は羅紗の上にいた|白い玉になって|あいつの骨でできた玉に",
+         "That night I opened my eyes|on the cloth.|A white ball.|Made of his bones."],
         ["За бортом что-то волочится по полу.|Три лапы. Мутные белые глаза.|Он помнит запах своих костей.",
-         "台の外で　何かが床を引きずっている|三本の脚　白く濁った目|あいつは　自分の骨の匂いを覚えている"],
+         "台の外で　何かが床を引きずっている|三本の脚　白く濁った目|あいつは　自分の骨の匂いを覚えている",
+         "Beyond the rail, something drags across the floor.|Three legs. Milky white eyes.|He remembers the smell of his own bones."],
         ["Чтобы проснуться, загони все шары в лузы|и упади последним.|Не шуми. Теперь есть будет он.",
-         "目覚めたければ　玉を全部ポケットに落とし|最後に自分が落ちろ|音を立てるな|今度は　あいつが食う番だ"],
+         "目覚めたければ　玉を全部ポケットに落とし|最後に自分が落ちろ|音を立てるな|今度は　あいつが食う番だ",
+         "If you want to wake, sink every ball|and fall in last.|Make no sound.|Now it's his turn to eat."],
       ];
       const storyBox = document.querySelector("#story");
       const storyRu = document.querySelector("#story-ru"), storyJa = document.querySelector("#story-ja");
@@ -186,12 +257,16 @@
         storyJa.classList.remove("shown");
         clearTimeout(storyTimer);
         storyTimer = setTimeout(() => {
-          const lines = text => text.split("|").join(String.fromCharCode(10));   // | は改行（テンプレートの書き出しで改行記号が壊れるため）
-          storyRu.textContent = lines(story[storyPage][0]);
-          storyJa.textContent = lines(story[storyPage][1]);
+          showStoryPage();
           storyRu.classList.add("shown");
           storyJa.classList.add("shown");
         }, storyPage === 0 ? 0 : 450);
+      }
+      function showStoryPage() {
+        if (storyPage < 0 || storyPage >= story.length) return;
+        const lines = text => text.split("|").join(String.fromCharCode(10));   // | は改行（テンプレートの書き出しで改行記号が壊れるため）
+        storyRu.textContent = lines(story[storyPage][0]);
+        storyJa.textContent = lines(story[storyPage][lang === "en" ? 2 : 1]);
       }
       // クレジット（作者名の表記が必要な素材があるので、スキップしても必ず 1 回は見せる）
       const credits = document.querySelector("#story-credits");
@@ -215,12 +290,17 @@
       const music = (() => {
         let ctx = null, gain = null, src = null, decoded = null;
         const data = fetch("story-music.mp3").then(r => r.arrayBuffer()).catch(e => { console.warn(e); return null; });
+        // 設定画面の「音楽」の大きさ（0〜10、8 がもとの大きさ）を掛ける
+        let target = 0;
+        const scale = () => { let v = NaN; try { v = parseInt(localStorage.getItem("akumu.bgm"), 10); } catch (e) {} return (isNaN(v) ? 8 : v) / 8; };
         function ramp(volume, seconds) {
+          target = volume;
           const t = ctx.currentTime;
           gain.gain.cancelScheduledValues(t);
           gain.gain.setValueAtTime(gain.gain.value, t);
-          gain.gain.linearRampToValueAtTime(volume, t + seconds);
+          gain.gain.linearRampToValueAtTime(volume * scale(), t + seconds);
         }
+        function rescale() { if (ctx && src) ramp(target, 0.15); }
         // タップの中で最初に呼ぶ（ブラウザは操作があるまで音を出させない）
         function play(volume, seconds) {
           if (!ctx) {
@@ -249,11 +329,16 @@
           src.stop(ctx.currentTime + seconds + 0.05);
           src = null;
         }
-        return { play, stop };
+        return { play, stop, rescale };
       })();
       const StoryVolume = 0.9, GameVolume = 0.45;
       // ゲームから呼ばれる（夜が始まると true、悪夢から覚めると false）
       window.nightmareMusic = on => on ? music.play(GameVolume, 2) : music.stop(3);
+      // ゲームの設定画面で変えた値（言語・音楽の大きさ）を、ページにもすぐ反映する
+      window.akumuSetting = (key, value) => {
+        if (key === "akumu.lang" && langs.includes(value)) { lang = value; applyLang(); }
+        if (key === "akumu.bgm") music.rescale();
+      };
 
       // 流れ：タイトル → （タップで）音楽とストーリー → ゲーム。読み込みが間に合わなければ、読み込みの表示を出して待つ
       let unity = null, storyDone = false, begun = false;
@@ -296,13 +381,28 @@
       const guideRotate = document.querySelector("#guide-rotate"), guideHome = document.querySelector("#guide-home");
       const install = document.querySelector("#install");
       let installPrompt = null;
-      document.querySelector("#home-steps").innerHTML = ios
-        ? "<li>Safari の画面下（iPad は上）にある共有ボタン <span class='share'></span> をタップ</li>"
-          + "<li>メニューを下へずらして <b>「ホーム画面に追加」</b> をタップ</li>"
-          + "<li>右上の <b>「追加」</b> をタップ</li>"
-        : "<li>ブラウザ右上の <b>「⋮」</b>（メニュー）をタップ</li>"
-          + "<li><b>「ホーム画面に追加」</b> または <b>「アプリをインストール」</b> をタップ</li>"
-          + "<li><b>「インストール」</b>（または「追加」）をタップ</li>";
+      function fillHomeSteps() {
+        document.querySelector("#home-steps").innerHTML = ios
+          ? L("<li>Safari の画面下（iPad は上）にある共有ボタン <span class='share'></span> をタップ</li>"
+              + "<li>メニューを下へずらして <b>「ホーム画面に追加」</b> をタップ</li>"
+              + "<li>右上の <b>「追加」</b> をタップ</li>",
+              "<li>Tap the Share button <span class='share'></span> at the bottom of Safari (top on iPad)</li>"
+              + "<li>Scroll down and tap <b>Add to Home Screen</b></li>"
+              + "<li>Tap <b>Add</b> in the top right</li>",
+              "<li>Нажмите кнопку «Поделиться» <span class='share'></span> внизу Safari (на iPad вверху)</li>"
+              + "<li>Прокрутите меню и нажмите <b>«На экран „Домой“»</b></li>"
+              + "<li>Нажмите <b>«Добавить»</b> в правом верхнем углу</li>")
+          : L("<li>ブラウザ右上の <b>「⋮」</b>（メニュー）をタップ</li>"
+              + "<li><b>「ホーム画面に追加」</b> または <b>「アプリをインストール」</b> をタップ</li>"
+              + "<li><b>「インストール」</b>（または「追加」）をタップ</li>",
+              "<li>Tap <b>⋮</b> (the menu) at the top right of the browser</li>"
+              + "<li>Tap <b>Add to Home screen</b> or <b>Install app</b></li>"
+              + "<li>Tap <b>Install</b> (or <b>Add</b>)</li>",
+              "<li>Нажмите <b>⋮</b> (меню) в правом верхнем углу браузера</li>"
+              + "<li>Выберите <b>«Добавить на главный экран»</b> или <b>«Установить приложение»</b></li>"
+              + "<li>Нажмите <b>«Установить»</b> (или «Добавить»)</li>");
+      }
+      applyLang();
       // Android の Chrome などでは、ボタン 1 つで追加の確認を出せる
       window.addEventListener("beforeinstallprompt", e => {
         e.preventDefault();
@@ -371,7 +471,8 @@
         console.error(message);
         loading.style.display = "none";
         const warning = document.querySelector("#warning");
-        warning.textContent = "起動できませんでした。ページを再読み込みしてください。";
+        warning.textContent = L("起動できませんでした。ページを再読み込みしてください。", "The game could not start. Please reload the page.",
+                                "Не удалось запустить игру. Перезагрузите страницу.");
         warning.style.display = "block";
       }
 
@@ -382,7 +483,7 @@
         if (action) Promise.resolve(action.call(active ? document : document.documentElement)).catch(e => console.warn(e));
       }
       document.addEventListener("fullscreenchange", () => {
-        fullscreen.textContent = document.fullscreenElement ? "全画面を終了" : "全画面";
+        fullscreen.textContent = document.fullscreenElement ? L("全画面を終了", "Exit full screen", "Выйти из полноэкранного") : L("全画面", "Full screen", "Полный экран");
       });
 
       const buildUrl = "Build";
